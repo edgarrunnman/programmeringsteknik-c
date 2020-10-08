@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace vowelapp
 {
@@ -6,8 +9,24 @@ namespace vowelapp
     {
         static void Main(string[] args)
         {
-            // Skriv en konsolapplikation som tar bort vokaler (konstigt va?) från en inmatad sträng.
-            // Applikationen skall både presentera den resulterande strängen och antalet vokaler som togs bort.
+            HashSet<char> vowels = new HashSet<char> { 'a', 'e', 'o', 'i', 'å', 'ö', 'ä', 'y', 'u'};
+            while (true)
+            {
+                Console.WriteLine("Sriv ett ord eller mening!");
+                string input = Console.ReadLine();
+                StringBuilder output = new StringBuilder();
+                int removedCount = 0;
+                foreach (char letter in input)
+                {
+                    if (!vowels.Contains(char.ToLower(letter)))
+                        output.Append(letter);
+                    else removedCount++;
+                }
+
+                Console.WriteLine(output.ToString());
+                Console.WriteLine(removedCount);
+            }
+            
         }
     }
 }
