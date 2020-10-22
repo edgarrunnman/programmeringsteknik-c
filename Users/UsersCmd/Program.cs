@@ -98,7 +98,6 @@ namespace Users.Cmd
                     registerRespons = new ServiceResponse() { Success = false };
                     continue;
                 }
-
             } while (!registerRespons.Success);
         }
 

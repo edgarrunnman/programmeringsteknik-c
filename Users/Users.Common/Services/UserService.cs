@@ -28,7 +28,6 @@ namespace Users.Common.Services
                 if (user.Email == email)
                     return user;
             }
-
             return null;
         }
 
