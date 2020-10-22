@@ -28,7 +28,8 @@ namespace Users.Cmd
             // Användaren får efter klick på verifieringslänk ange ett lösenord i en maskad inmatning.
 
             var userService = new UserService();
-            while (true)
+            bool userNotInlogged = true;
+            while (userNotInlogged)
             {
                 Console.Write("Vill du logga in? (ja, nej): ");
                 if (Console.ReadLine() == "ja")
@@ -43,12 +44,12 @@ namespace Users.Cmd
                     }
                     else
                     {
-                        LogginUser(userService, userInputEmail);
+                        LogginUser(userService, userInputEmail, ref userNotInlogged);
                     }
                 }
                 else
                 {
-                    Console.Write("Vill du registrera dig? (ja, nej) ");
+                    Console.Write("Vill du registrera dig? (ja, nej): ");
                     if (Console.ReadLine() == "ja")
                     {
                         RegisterNewUser(userService);
@@ -67,7 +68,7 @@ namespace Users.Cmd
                 newUser.Name = Console.ReadLine();
                 Console.Write("Skriv din epost: ");
                 newUser.Email = Console.ReadLine();
-                Console.Write("Skriv din lösenord: ");
+                Console.WriteLine("Lösenord.");
                 newUser.Password = PasswordFactory(newUser.Email);
                 Console.Write("Skriv din telefonnummer: ");
                 newUser.Phone = Console.ReadLine();
@@ -87,40 +88,57 @@ namespace Users.Cmd
                 }
             } while (!registerRespons.Success);
         }
-        private static void LogginUser(UserService userService, string userInputEmail)
+        private static void LogginUser(UserService userService, string userInputEmail, ref bool userNotInlogged)
         {
             Console.Write("Skriv din lösenord: ");
             var userInputPassword = MaskedPasswordInput();
             var loginRespons = userService.Login(userInputEmail, userInputPassword);
+            
             while (!loginRespons.Success)
             {
-                Console.WriteLine("Det gick inte att logga in, prova igen");
-                Console.Write("Skriv din lösenord: ");
-                userInputPassword = Console.ReadLine();
-                loginRespons = userService.Login(userInputEmail, userInputPassword);
+                Console.Write("Det gick inte att logga in, vill du prova igen? (ja, nej): ");
+                if (Console.ReadLine() == "ja")
+                {
+                    Console.Write("Skriv din lösenord: ");
+                    userInputPassword = Console.ReadLine();
+                    loginRespons = userService.Login(userInputEmail, userInputPassword);
+                }
+                else break;
             }
-            Console.WriteLine("Du är inlogad");
+            if (loginRespons.Success)
+            {
+                userNotInlogged = false;
+                Console.WriteLine("Du loggades in");
+            }
         }
 
         private static string PasswordFactory(string email)
         {
-            string newPassword;
-            Console.Write("Vill du autogenerera lösenord? (ja, nej)");
+            string newPassword = string.Empty;
+            var passwordService = new PasswordService();
+            Console.Write("Vill du autogenerera lösenord?(ja, nej): ");
             if (Console.ReadLine() == "ja")
             {
-                var passwordService = new PasswordService();
                 newPassword = passwordService.GeneratePassword(8);
                 SimulateEmail(newPassword, email);
                 return newPassword;
             }
             else
             {
-                do
+                bool passwordNotSpellChecked = true;
+                while (passwordNotSpellChecked)
                 {
-                    Console.Write("Skriv lösenord (minst 8 tecken...)");
+                    Console.Write("Skriv lösenord (8 tecken, 1 versal, 1 siffra och 1 special tecken): ");
                     newPassword = MaskedPasswordInput();
-                    Console.Write("Skriv din lösenord igen");
-                } while (newPassword != MaskedPasswordInput());
+                    if (!passwordService.ValidatePassword(newPassword, 8).Success)
+                    {
+                        Console.WriteLine("Lösenord håller inte krav på 8 tecken, 1 versal, 1 siffra och 1 special tecken");
+                        continue;
+                    }
+                    Console.Write("Skriv din lösenord igen: ");
+                    if (newPassword == MaskedPasswordInput())
+                        passwordNotSpellChecked = false;
+                } 
                 return newPassword;
             }
         }
@@ -147,7 +165,6 @@ namespace Users.Cmd
             Console.Write("\n");
             return pass;
         }
-
         private static void SimulateEmail(string password, string email)
         {
             Console.WriteLine($"Skickade melj till {email} med din lösenord som är {password}");

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Data;
+using System.Linq;
 using Users.Common.Models;
 
 namespace Users.Common.Services
@@ -41,12 +43,32 @@ namespace Users.Common.Services
 
         public IServiceResponse ValidatePassword(string password, uint length, uint capitalLetters = 1, uint numbers = 1, uint specialChars = 1)
         {
-            throw new NotImplementedException();
-        }
-
-        public IServiceResponse ValidatePassword(uint length, uint capitalLetters = 1, uint numbers = 1, uint specialChars = 1)
-        {
-            throw new NotImplementedException();
+            if (password.Length < length)
+                return new ServiceResponse()
+                {
+                    Success = false
+                };
+            int countCapitalLetters = (int)capitalLetters;
+            int countNumber = (int)numbers;
+            int countSpecialChars = (int)specialChars;
+            foreach (var charackter in password)
+            {
+                if (_letters.ToCharArray().Contains(charackter))
+                    countCapitalLetters--;
+                else if (_numbers.ToCharArray().Contains(charackter))
+                    countNumber--;
+                else if (_special.ToCharArray().Contains(charackter))
+                    countSpecialChars--;
+            }
+            if (countCapitalLetters <= 0 && countNumber <= 0 && countSpecialChars <= 0)
+                return new ServiceResponse()
+                {
+                    Success = true
+                };
+            return new ServiceResponse()
+            {
+                Success = false
+            };
         }
 
         private char GetRandomCharacter(string input)
