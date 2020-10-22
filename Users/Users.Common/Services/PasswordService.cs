@@ -3,6 +3,7 @@ using System.Data;
 using System.Linq;
 using Users.Common.Models;
 
+
 namespace Users.Common.Services
 {
     public class PasswordService : IPasswordService
@@ -34,10 +35,8 @@ namespace Users.Common.Services
                 {
                     currentCharacter = GetRandomCharacter(_numbers);
                 }
-
                 buffer[i] = currentCharacter;
             }
-
             return new string(buffer);
         }
 
@@ -76,5 +75,7 @@ namespace Users.Common.Services
             var position = new Random().Next(0, input.Length);
             return input[position];
         }
+        
+        
     }
 }

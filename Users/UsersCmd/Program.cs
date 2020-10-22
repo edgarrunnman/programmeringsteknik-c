@@ -26,19 +26,20 @@ namespace Users.Cmd
             // Lösenord har vanligtvis löjliga/svåra lösenordsregelkrav pga brute force-algoritmer.
             // Normalt skickar man en epost med länk till användaren som registrerats.
             // Användaren får efter klick på verifieringslänk ange ett lösenord i en maskad inmatning.
-
-            var userService = new UserService();
+            var filePathRegister = @".\Data\UserRegister.csv";
+            var filePathCredentials = @".\Data\UserCredentials.csv";
+            var userService = new UserService(filePathRegister, filePathCredentials);
             bool userNotInlogged = true;
             while (userNotInlogged)
             {
                 Console.Write("Vill du logga in? (ja, nej): ");
                 if (Console.ReadLine() == "ja")
                 {
-                    Console.Write("Skriv din epost: ");
+                    Console.Write("Skriv din mejladress: ");
                     var userInputEmail = Console.ReadLine();
                     if (userService.Get(userInputEmail) == null)
                     {
-                        Console.WriteLine("Epost finns inte i register, vill du registrera dig först? (ja, nej): ");
+                        Console.WriteLine("Mejladressen finns inte i register, vill du registrera dig först? (ja, nej): ");
                         if (Console.ReadLine() == "ja")
                             RegisterNewUser(userService);
                     }
@@ -61,18 +62,28 @@ namespace Users.Cmd
         private static void RegisterNewUser(UserService userService)
         {
             IServiceResponse registerRespons;
+            var newUser = new User();
             do
             {
-                var newUser = new User();
-                Console.Write("Skriv din Namn: ");
+                newUser.Id = Guid.NewGuid();
+                Console.Write("Skriv ditt namn: ");
                 newUser.Name = Console.ReadLine();
-                Console.Write("Skriv din epost: ");
+                Console.Write("Skriv din mejladress: ");
                 newUser.Email = Console.ReadLine();
+
+                if (userService.Get(newUser.Email) != null)
+                {
+                    Console.WriteLine("Mejladressen finns redan registrerad");
+                    registerRespons = new ServiceResponse() { Success = false };
+                    continue;
+                }
                 Console.WriteLine("Lösenord.");
-                newUser.Password = PasswordFactory(newUser.Email);
+
+                userService.SetPassword(newUser.Id, ProtectionService.Encrypt(PasswordFactory(newUser.Email)));
+
                 Console.Write("Skriv din telefonnummer: ");
                 newUser.Phone = Console.ReadLine();
-                Console.Write("Vill du prenumera på nyhetsbrev? (ja, nej): ");
+                Console.Write("Vill du prenumerera på nyhetsbrev? (ja, nej): ");
                 newUser.SubscribeToNewsletter = Console.ReadLine() == "ja" ? true : false;
 
                 if (userService.Get(newUser.Email) == null)
@@ -83,24 +94,27 @@ namespace Users.Cmd
                 }
                 else
                 {
-                    Console.WriteLine("Epost finns redan registrerad");
+                    Console.WriteLine("Mejladressen finns redan registrerad");
                     registerRespons = new ServiceResponse() { Success = false };
+                    continue;
                 }
+
             } while (!registerRespons.Success);
         }
+
         private static void LogginUser(UserService userService, string userInputEmail, ref bool userNotInlogged)
         {
             Console.Write("Skriv din lösenord: ");
-            var userInputPassword = MaskedPasswordInput();
+            var userInputPassword = ProtectionService.Encrypt(MaskedPasswordInput());
             var loginRespons = userService.Login(userInputEmail, userInputPassword);
-            
+
             while (!loginRespons.Success)
             {
                 Console.Write("Det gick inte att logga in, vill du prova igen? (ja, nej): ");
                 if (Console.ReadLine() == "ja")
                 {
                     Console.Write("Skriv din lösenord: ");
-                    userInputPassword = Console.ReadLine();
+                    userInputPassword = ProtectionService.Encrypt(MaskedPasswordInput());
                     loginRespons = userService.Login(userInputEmail, userInputPassword);
                 }
                 else break;
@@ -108,7 +122,7 @@ namespace Users.Cmd
             if (loginRespons.Success)
             {
                 userNotInlogged = false;
-                Console.WriteLine("Du loggades in");
+                Console.WriteLine("Du är nu inloggad");
             }
         }
 
@@ -116,7 +130,7 @@ namespace Users.Cmd
         {
             string newPassword = string.Empty;
             var passwordService = new PasswordService();
-            Console.Write("Vill du autogenerera lösenord?(ja, nej): ");
+            Console.Write("Vill du generera lösenord?(ja, nej): ");
             if (Console.ReadLine() == "ja")
             {
                 newPassword = passwordService.GeneratePassword(8);
@@ -138,37 +152,38 @@ namespace Users.Cmd
                     Console.Write("Skriv din lösenord igen: ");
                     if (newPassword == MaskedPasswordInput())
                         passwordNotSpellChecked = false;
-                } 
+                }
                 return newPassword;
             }
         }
+
         private static string MaskedPasswordInput()
         {
-            var pass = string.Empty;
+            var password = string.Empty;
             ConsoleKey key;
             do
             {
                 var keyInfo = Console.ReadKey(intercept: true);
                 key = keyInfo.Key;
 
-                if (key == ConsoleKey.Backspace && pass.Length > 0)
+                if (key == ConsoleKey.Backspace && password.Length > 0)
                 {
                     Console.Write("\b \b");
-                    pass = pass[0..^1];
+                    password = password[0..^1];
                 }
                 else if (!char.IsControl(keyInfo.KeyChar))
                 {
                     Console.Write("*");
-                    pass += keyInfo.KeyChar;
+                    password += keyInfo.KeyChar;
                 }
             } while (key != ConsoleKey.Enter);
             Console.Write("\n");
-            return pass;
+            return password;
         }
+
         private static void SimulateEmail(string password, string email)
         {
-            Console.WriteLine($"Skickade melj till {email} med din lösenord som är {password}");
+            Console.WriteLine($"Skickar e-post till {email} med din lösenord som är {password}");
         }
-            
     }
 }
